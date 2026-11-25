@@ -12,6 +12,13 @@ import { CreateProyectoDto } from './dto/create-proyecto.dto.js';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto.js';
 import { Proyecto } from './entities/proyecto.entity.js';
 
+export interface ProgresoProyecto {
+  proyectoId: number;
+  total: number;
+  completadas: number;
+  porcentaje: number;
+}
+
 @Injectable()
 export class ProyectoService {
   constructor(
@@ -23,8 +30,7 @@ export class ProyectoService {
 
   async create(dto: CreateProyectoDto): Promise<Proyecto> {
     this.validarFechas(dto.fechaInicio, dto.fechaFinalizacion);
-    const proyecto = this.proyectoRepo.create(dto);
-    return this.proyectoRepo.save(proyecto);
+    return this.proyectoRepo.save(this.proyectoRepo.create(dto));
   }
 
   findAll(): Promise<Proyecto[]> {
@@ -37,6 +43,22 @@ export class ProyectoService {
       throw new NotFoundException(`El proyecto con id ${id} no existe`);
     }
     return proyecto;
+  }
+
+  async obtenerProgreso(id: number): Promise<ProgresoProyecto> {
+    await this.findOne(id);
+
+    const [total, completadas] = await Promise.all([
+      this.tareaRepo.count({ where: { proyectoId: id } }),
+      this.tareaRepo.count({
+        where: { proyectoId: id, estado: EstadoTarea.COMPLETADA },
+      }),
+    ]);
+
+    const porcentaje =
+      total === 0 ? 0 : Math.round((completadas / total) * 10000) / 100;
+
+    return { proyectoId: id, total, completadas, porcentaje };
   }
 
   async update(id: number, dto: UpdateProyectoDto): Promise<Proyecto> {
@@ -65,18 +87,8 @@ export class ProyectoService {
     await this.proyectoRepo.remove(proyecto);
   }
 
-  private validarFechas(
-    inicio: string | Date,
-    fin?: string | Date | null,
-  ): void {
-    if (!fin) return;
-
-    const inicioMs =
-      inicio instanceof Date ? inicio.getTime() : Date.parse(`${inicio}T00:00:00Z`);
-    const finMs =
-      fin instanceof Date ? fin.getTime() : Date.parse(`${fin}T00:00:00Z`);
-
-    if (!Number.isNaN(inicioMs) && !Number.isNaN(finMs) && finMs < inicioMs) {
+  private validarFechas(inicio: string, fin?: string | null): void {
+    if (fin && new Date(fin) < new Date(inicio)) {
       throw new BadRequestException(
         'La fecha de finalización no puede ser anterior a la fecha de inicio',
       );

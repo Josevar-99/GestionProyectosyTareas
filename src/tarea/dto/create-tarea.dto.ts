@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
@@ -7,32 +7,36 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { EstadoTarea } from '../enums/estado-tarea.enum.js';
 import { PrioridadTarea } from '../enums/prioridad-tarea.enum.js';
 
 export class CreateTareaDto {
+  @ApiProperty({ example: 'Diseñar el modelo de datos', maxLength: 150 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  titulo!: string;
+  titulo: string;
 
+  @ApiPropertyOptional({
+    example: 'Definir entidades y relaciones en PostgreSQL',
+    maxLength: 500,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   descripcion?: string;
 
-  @IsOptional()
-  @IsEnum(EstadoTarea)
-  @Transform(({ value }) => value ?? EstadoTarea.PENDIENTE)
-  estado: EstadoTarea = EstadoTarea.PENDIENTE;
-
+  @ApiPropertyOptional({
+    enum: PrioridadTarea,
+    default: PrioridadTarea.MEDIA,
+  })
   @IsOptional()
   @IsEnum(PrioridadTarea)
-  @Transform(({ value }) => value ?? PrioridadTarea.MEDIA)
-  prioridad: PrioridadTarea = PrioridadTarea.MEDIA;
+  prioridad?: PrioridadTarea;
 
+  @ApiPropertyOptional({
+    example: '2026-12-15',
+    description: 'Formato YYYY-MM-DD',
+  })
   @IsOptional()
   @IsDateString()
   fechaLimite?: string;

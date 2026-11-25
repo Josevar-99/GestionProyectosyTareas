@@ -43,6 +43,18 @@ export class ProyectoController {
     return this.proyectoService.findOne(id);
   }
 
+  @Get(':id/progreso')
+  @ApiOperation({
+    summary: 'Porcentaje de avance según las tareas completadas',
+    description:
+      'Devuelve total, completadas y porcentaje. Un proyecto sin tareas devuelve 0% con total 0.',
+  })
+  @ApiResponse({ status: 200, description: 'Avance del proyecto' })
+  @ApiResponse({ status: 404, description: 'El proyecto no existe' })
+  progreso(@Param('id', ParseIntPipe) id: number) {
+    return this.proyectoService.obtenerProgreso(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un proyecto' })
   @ApiResponse({ status: 200, description: 'Proyecto actualizado' })
