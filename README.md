@@ -24,12 +24,17 @@ Crea un archivo `.env` en la raíz del proyecto:
 ```env
 PORT=3000
 API_PREFIX=v1
-DB_HOST=localhost
+DB_HOST=db
 DB_PORT=5432
 DB_USER=postgres
 DB_PASS=tu_contraseña
 DB_NAME=gestion_proyectos_tareas
 DB_SYNC=true
+DB_SSL=false
+
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=tu_contraseña
+POSTGRES_DB=gestion_proyectos_tareas
 ```
 
 Inicia PostgreSQL con Docker Compose:
@@ -160,3 +165,54 @@ npm run test:e2e
 # Cobertura
 npm run test:cov
 ```
+
+## Docker
+
+La imagen incluye una compilación multi-stage y solo contiene dependencias de ejecución en la etapa final.
+
+```bash
+cp .env.example .env
+# Ajusta los valores reales de .env
+docker compose up -d --build
+```
+
+La API estará disponible en `http://localhost:3000/v1` y Swagger en `http://localhost:3000/docs`.
+
+## Desplegar en Azure Container Apps
+
+Los requisitos son tener la extensión Azure CLI instalada y un Azure Container Registry (ACR).
+
+1. Publica la imagen:
+
+```bash
+az login
+az acr create --resource-group <grupo> --name <acr-unico> --sku Basic
+az acr build --registry <acr-unico> --image gestion-tareas-api:latest .
+```
+
+2. Crea una instancia de Azure Database for PostgreSQL Flexible Server y habilita el acceso desde Azure Container Apps. Usa una clave secreta segura para `DB_PASS`.
+
+3. Despliega la API:
+
+```bash
+az containerapp create \
+  --name gestion-tareas-api \
+  --resource-group <grupo> \
+  --environment <entorno> \
+  --image <acr-unico>.azurecr.io/gestion-tareas-api:latest \
+  --registry-server <acr-unico>.azurecr.io \
+  --target-port 3000 \
+  --ingress external \
+  --env-vars \
+    PORT=3000 \
+    API_PREFIX=v1 \
+    DB_HOST=<servidor>.postgres.database.azure.com \
+    DB_PORT=5432 \
+    DB_USER=<usuario> \
+    DB_PASS=<contraseña> \
+    DB_NAME=gestion_proyectos_tareas \
+    DB_SYNC=false \
+    DB_SSL=true
+```
+
+Para producción, mantén `DB_SYNC=false` y administra el esquema con migraciones. Azure Container Apps asignará una URL HTTPS pública para la API.

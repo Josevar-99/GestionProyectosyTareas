@@ -9,6 +9,7 @@ export const envSchema = z.object({
   DB_PASS: z.string().min(1),
   DB_NAME: z.string().min(1),
   DB_SYNC: z.stringbool().default(true),
+  DB_SSL: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

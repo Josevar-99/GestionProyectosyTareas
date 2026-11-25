@@ -14,5 +14,6 @@ export default registerAs('database', (): TypeOrmModuleOptions => {
     database: env.DB_NAME,
     autoLoadEntities: true,
     synchronize: env.DB_SYNC,
+    ssl: env.DB_SSL ? { rejectUnauthorized: false } : false,
   };
 });
